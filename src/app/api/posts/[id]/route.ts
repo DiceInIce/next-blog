@@ -38,7 +38,6 @@ export async function GET(
 
     return NextResponse.json(post)
   } catch (error) {
-    console.error('Ошибка при получении поста:', error)
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },
       { status: 500 }
@@ -90,7 +89,6 @@ export async function PUT(
       post: updatedPost
     })
   } catch (error) {
-    console.error('Ошибка при обновлении поста:', error)
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },
       { status: 500 }
@@ -121,7 +119,6 @@ export async function DELETE(
       message: 'Пост успешно удален'
     })
   } catch (error) {
-    console.error('Ошибка при удалении поста:', error)
     return NextResponse.json(
       { error: 'Внутренняя ошибка сервера' },
       { status: 500 }

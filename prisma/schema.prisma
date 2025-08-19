@@ -9,10 +9,13 @@ datasource db {
 
 // Здесь будут ваши модели данных
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
-  posts Post[]
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  posts     Post[]
 }
 
 model Post { 

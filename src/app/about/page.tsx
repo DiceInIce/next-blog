@@ -5,8 +5,7 @@ import {
   Container,
   Heading,
   Text,
-  VStack,
-  HStack,
+  Stack,
   Badge,
   Link,
   Button,
@@ -47,11 +46,11 @@ export default function AboutPage() {
     <Box minH="100vh" bg={bgColor} py={12}>
       <Container maxW="6xl" px={4}>
         {/* Навигация с кнопкой переключения темы */}
-        <HStack justify="flex-end" w="full" mb={8}>
+        <Stack direction="row" justify="flex-end" w="full" mb={8}>
           <ColorModeButton size="md" />
-        </HStack>
+        </Stack>
 
-        <VStack gap={12} align="stretch">
+        <Stack gap={12} align="stretch">
           {/* Заголовок */}
           <Box textAlign="center">
             <Heading size="2xl" color={textColor} mb={4}>
@@ -88,7 +87,7 @@ export default function AboutPage() {
 
           {/* Описание проекта */}
           <Box bg={cardBgColor} p={8} rounded="xl" shadow="md">
-            <VStack gap={6} align="stretch">
+            <Stack gap={6} align="stretch">
               <Heading size="lg" color={textColor}>
                 Что это за проект?
               </Heading>
@@ -102,12 +101,12 @@ export default function AboutPage() {
                 и SEO-оптимизацию. Для работы с данными используется Prisma ORM, а для создания
                 пользовательского интерфейса - Chakra UI v3.
               </Text>
-            </VStack>
+            </Stack>
           </Box>
 
           {/* Ссылки */}
           <Box textAlign="center">
-            <HStack gap={4} justify="center" wrap="wrap">
+            <Stack direction="row" gap={4} justify="center" wrap="wrap">
               <Link href="https://github.com" _hover={{ textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">
                 <Button
                   colorScheme="gray"
@@ -127,7 +126,7 @@ export default function AboutPage() {
                   Вернуться к блогу
                 </Button>
               </Link>
-            </HStack>
+            </Stack>
           </Box>
 
           {/* Версия */}
@@ -136,7 +135,7 @@ export default function AboutPage() {
               Версия 1.0.0
             </Badge>
           </Box>
-        </VStack>
+        </Stack>
       </Container>
     </Box>
   )

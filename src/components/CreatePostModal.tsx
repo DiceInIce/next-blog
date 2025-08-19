@@ -6,11 +6,12 @@ import {
   Button,
   Input,
   Textarea,
-  VStack,
+  Stack,
   Text,
   CloseButton,
 } from '@chakra-ui/react'
 import { useColorMode } from '@/components/ui/color-mode'
+import { useAuth } from '@/hooks/useAuth'
 
 interface CreatePostModalProps {
   isOpen: boolean
@@ -22,11 +23,11 @@ interface CreatePostModalProps {
 export default function CreatePostModal({ isOpen, onClose, onPostCreated, onError }: CreatePostModalProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [authorId, setAuthorId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const { colorMode } = useColorMode()
+  const { token, isAuthenticated } = useAuth()
 
   // Обработка клавиши Escape
   useEffect(() => {
@@ -58,16 +59,41 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
     setIsLoading(true)
     setMessage('')
 
+    if (!token) {
+      setMessage('Ошибка: Требуется авторизация')
+      setMessageType('error')
+      setIsLoading(false)
+      return
+    }
+
+    if (token.trim() === '') {
+      setMessage('Ошибка: Токен пустой')
+      setMessageType('error')
+      setIsLoading(false)
+      return
+    }
+
+    // Проверяем формат JWT токена (должен содержать 3 части, разделенные точками)
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      setMessage('Ошибка: Неправильный формат токена')
+      setMessageType('error')
+      setIsLoading(false)
+      return
+    }
+
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
       const response = await fetch('/api/posts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           title,
-          content,
-          authorId: parseInt(authorId)
+          content
         }),
       })
 
@@ -77,7 +103,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
         // Очищаем форму
         setTitle('')
         setContent('')
-        setAuthorId('')
         
         // Сразу закрываем модальное окно
         onClose()
@@ -95,7 +120,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
       setMessageType('error')
       // Передаем ошибку на главную страницу
       onError?.('Ошибка при создании поста')
-      console.error('Ошибка:', error)
     } finally {
       setIsLoading(false)
     }
@@ -105,7 +129,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
     // Очищаем форму при закрытии
     setTitle('')
     setContent('')
-    setAuthorId('')
     setMessage('')
     onClose()
   }
@@ -166,7 +189,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
         {/* Содержимое */}
         <Box p={6}>
           <form onSubmit={handleSubmit}>
-            <VStack gap={4}>
+            <Stack gap={4}>
               {message && messageType === 'error' && (
                 <Box 
                   w="full"
@@ -182,45 +205,9 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
               )}
 
               <Box w="full">
-                <label htmlFor="authorId" style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: labelColor === 'gray.300' ? '#d1d5db' : '#374151', 
-                  display: 'block', 
-                  marginBottom: '8px' 
-                }}>
-                  ID автора *
-                </label>
-                <Input
-                  type="number"
-                  id="authorId"
-                  value={authorId}
-                  onChange={(e) => setAuthorId(e.target.value)}
-                  placeholder="Введите ID пользователя"
-                  size="md"
-                  required
-                  bg={inputBgColor}
-                  borderColor={inputBorderColor}
-                  color={inputTextColor}
-                  _placeholder={{ color: colorMode === 'dark' ? 'gray.400' : 'gray.500' }}
-                  _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px var(--chakra-colors-blue-500)' }}
-                  disabled={isLoading}
-                />
-                <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'} mt={1}>
-                  Для тестирования используйте ID: 1
-                </Text>
-              </Box>
-
-              <Box w="full">
-                <label htmlFor="title" style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: labelColor === 'gray.300' ? '#d1d5db' : '#374151', 
-                  display: 'block', 
-                  marginBottom: '8px' 
-                }}>
+                <Text as="label" display="block" fontSize="sm" fontWeight="medium" mb={1} color={labelColor}>
                   Заголовок *
-                </label>
+                </Text>
                 <Input
                   type="text"
                   id="title"
@@ -239,15 +226,9 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
               </Box>
 
               <Box w="full">
-                <label htmlFor="content" style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: labelColor === 'gray.300' ? '#d1d5db' : '#374151', 
-                  display: 'block', 
-                  marginBottom: '8px' 
-                }}>
+                <Text as="label" display="block" fontSize="sm" fontWeight="medium" mb={1} color={labelColor}>
                   Содержание *
-                </label>
+                </Text>
                 <Textarea
                   id="content"
                   value={content}
@@ -264,7 +245,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
                   disabled={isLoading}
                 />
               </Box>
-            </VStack>
+            </Stack>
           </form>
         </Box>
 

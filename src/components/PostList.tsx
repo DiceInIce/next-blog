@@ -6,11 +6,11 @@ import {
   Heading,
   Text,
   Button,
-  VStack,
-  HStack,
+  Stack,
   Spinner,
 } from '@chakra-ui/react'
 import { useColorMode } from '@/components/ui/color-mode'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Post {
   id: number
@@ -29,6 +29,7 @@ export default function PostList() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const { colorMode } = useColorMode()
+  const { token } = useAuth()
 
   // Цвета для темной/светлой темы с значениями по умолчанию
   const bgColor = colorMode === 'dark' ? 'gray.800' : 'white'
@@ -48,7 +49,6 @@ export default function PostList() {
       }
     } catch (error) {
       setError('Ошибка при загрузке постов')
-      console.error('Ошибка:', error)
     } finally {
       setIsLoading(false)
     }
@@ -63,19 +63,27 @@ export default function PostList() {
       return
     }
 
+    if (!token) {
+      setError('Требуется авторизация для удаления поста')
+      return
+    }
+
     try {
       const response = await fetch(`/api/posts/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       })
 
       if (response.ok) {
         setPosts(posts.filter(post => post.id !== id))
       } else {
-        setError('Ошибка при удалении поста')
+        const data = await response.json()
+        setError(data.error || 'Ошибка при удалении поста')
       }
     } catch (error) {
       setError('Ошибка при удалении поста')
-      console.error('Ошибка:', error)
     }
   }
 
@@ -126,7 +134,7 @@ export default function PostList() {
           <Text fontSize="lg">Постов пока нет. Создайте первый пост!</Text>
         </Box>
       ) : (
-        <VStack gap={4} align="stretch">
+        <Stack gap={4} align="stretch">
           {posts.map((post) => (
             <Box 
               key={post.id} 
@@ -138,7 +146,7 @@ export default function PostList() {
               _hover={{ shadow: "md" }}
               transition="all 0.2s"
             >
-              <HStack justify="space-between" align="flex-start" mb={2}>
+              <Stack direction="row" justify="space-between" align="flex-start" mb={2}>
                 <Heading size="md" color={textColor} maxW="70%">
                   {post.title}
                 </Heading>
@@ -150,7 +158,7 @@ export default function PostList() {
                 >
                   Удалить
                 </Button>
-              </HStack>
+              </Stack>
 
               <Box mb={3}>
                 <Text color={subTextColor}>
@@ -158,13 +166,13 @@ export default function PostList() {
                 </Text>
               </Box>
 
-              <HStack justify="space-between" fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
+              <Stack direction="row" justify="space-between" fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
                 <Text>Автор: {post.author.name || post.author.email}</Text>
                 <Text>{new Date(post.createdAt).toLocaleDateString('ru-RU')}</Text>
-              </HStack>
+              </Stack>
             </Box>
           ))}
-        </VStack>
+        </Stack>
       )}
 
       <Button
