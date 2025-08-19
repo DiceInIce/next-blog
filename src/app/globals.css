@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* Предотвращение мерцания при загрузке */
+html {
+  color-scheme: light;
+}
+
+/* Темная тема */
+.chakra-theme.dark {
+  --chakra-colors-bg: #1a202c;
+  --chakra-colors-fg: #ffffff;
+  color-scheme: dark;
+}
+
+/* Светлая тема */
+.chakra-theme.light {
+  --chakra-colors-bg: #ffffff;
+  --chakra-colors-fg: #1a202c;
+  color-scheme: light;
+}
+
+/* Плавные переходы для смены темы */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Улучшенные стили для полей ввода в темной теме */
+.chakra-theme.dark input,
+.chakra-theme.dark textarea {
+  background-color: #2d3748 !important;
+  color: #ffffff !important;
+  border-color: #4a5568 !important;
+}
+
+.chakra-theme.dark input::placeholder,
+.chakra-theme.dark textarea::placeholder {
+  color: #a0aec0 !important;
+}
+
+/* Улучшенные стили для полей ввода в светлой теме */
+.chakra-theme.light input,
+.chakra-theme.light textarea {
+  background-color: #ffffff !important;
+  color: #1a202c !important;
+  border-color: #e2e8f0 !important;
+}
+
+.chakra-theme.light input::placeholder,
+.chakra-theme.light textarea::placeholder {
+  color: #718096 !important;
+}
+
+/* Улучшенные стили для кнопок в темной теме */
+.chakra-theme.dark button {
+  color: #ffffff;
+}
+
+/* Улучшенные стили для кнопок в светлой теме */
+.chakra-theme.light button {
+  color: #1a202c;
+}
