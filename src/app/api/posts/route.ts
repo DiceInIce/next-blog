@@ -1,18 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyToken } from '@/lib/auth'
 
 // POST метод для создания нового поста
 export async function POST(request: NextRequest) {
   try {
-    // Получаем ID пользователя из заголовков (установленных middleware)
-    const userId = request.headers.get('x-user-id');
-    
-    if (!userId) {
+    // Читаем токен из httpOnly cookies
+    const token = request.cookies.get('token')?.value || null;
+    if (!token) {
       return NextResponse.json(
         { error: 'Требуется авторизация' },
         { status: 401 }
       );
     }
+
+    const decoded = verifyToken(token);
+    if (!decoded || !decoded.userId || !decoded.username) {
+      return NextResponse.json(
+        { error: 'Недействительный токен' },
+        { status: 401 }
+      );
+    }
+
+    const userId = Number(decoded.userId);
 
     // 1. Получаем данные из тела запроса
     const body = await request.json()
@@ -28,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Проверяем, существует ли пользователь
     const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) }
+      where: { id: userId }
     })
 
     if (!user) {
@@ -43,7 +53,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         content,
-        authorId: parseInt(userId)
+        authorId: userId
       },
       // 5. Возвращаем созданный пост с информацией об авторе
       include: {
@@ -92,7 +102,8 @@ export async function GET() {
       },
       orderBy: {
         createdAt: 'desc'
-      }
+      },
+      take: 20
     })
 
     return NextResponse.json(posts)

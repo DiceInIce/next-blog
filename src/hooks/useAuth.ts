@@ -11,7 +11,6 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
@@ -19,70 +18,44 @@ interface AuthState {
 export function useAuth() {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    token: null,
     isAuthenticated: false,
     isLoading: true,
   });
 
   useEffect(() => {
-    // Проверяем localStorage при загрузке
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-
-    if (token && userStr) {
+    // Получаем текущего пользователя с сервера (токен читается на сервере из httpOnly cookie)
+    const loadUser = async () => {
       try {
-        const user = JSON.parse(userStr);
-        
-        // Проверяем, что токен не пустой
-        if (token.trim() === '') {
-          logout();
-          return;
+        const response = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' });
+        if (!response.ok) {
+          throw new Error('Не удалось получить пользователя');
         }
-        
-        setAuthState({
-          user,
-          token,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } catch (error) {
-        logout();
+        const data = await response.json();
+        if (data.user) {
+          setAuthState({ user: data.user, isAuthenticated: true, isLoading: false });
+        } else {
+          setAuthState({ user: null, isAuthenticated: false, isLoading: false });
+        }
+      } catch (e) {
+        setAuthState({ user: null, isAuthenticated: false, isLoading: false });
       }
-    } else {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
-    }
+    };
+    loadUser();
   }, []);
 
-  const login = (user: User, token: string) => {
-    // Проверяем, что токен не пустой
-    if (!token || token.trim() === '') {
-      return;
-    }
-    
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    
-    setAuthState({
-      user,
-      token,
-      isAuthenticated: true,
-      isLoading: false,
-    });
+  const login = (user: User) => {
+    // Сервер уже установил httpOnly cookie на /api/auth/login, просто обновим состояние
+    setAuthState({ user, isAuthenticated: true, isLoading: false });
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setAuthState({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    setAuthState({ user: null, isAuthenticated: false, isLoading: false });
   };
 
   const updateUser = (updatedUser: User) => {
-    localStorage.setItem('user', JSON.stringify(updatedUser));
     setAuthState(prev => ({
       ...prev,
       user: updatedUser,

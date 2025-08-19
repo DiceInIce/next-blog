@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { verifyToken } from '@/lib/auth'
 
 // GET метод для получения поста по ID
 export async function GET(
@@ -51,6 +52,24 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Проверяем авторизацию и получаем пользователя из cookies
+    const token = request.cookies.get('token')?.value || null;
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Требуется авторизация' },
+        { status: 401 }
+      );
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { error: 'Недействительный токен' },
+        { status: 401 }
+      );
+    }
+    const currentUserId = Number(decoded.userId);
+
     const id = parseInt(params.id)
 
     if (isNaN(id)) {
@@ -67,6 +86,26 @@ export async function PUT(
       return NextResponse.json(
         { error: 'Необходимо указать title и content' },
         { status: 400 }
+      )
+    }
+
+    // Проверяем, что пост принадлежит текущему пользователю
+    const existingPost = await prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true }
+    })
+
+    if (!existingPost) {
+      return NextResponse.json(
+        { error: 'Пост не найден' },
+        { status: 404 }
+      )
+    }
+
+    if (existingPost.authorId !== currentUserId) {
+      return NextResponse.json(
+        { error: 'Недостаточно прав для изменения этого поста' },
+        { status: 403 }
       )
     }
 
@@ -102,12 +141,50 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Проверяем авторизацию и права через cookies
+    const token = request.cookies.get('token')?.value || null;
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Требуется авторизация' },
+        { status: 401 }
+      );
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { error: 'Недействительный токен' },
+        { status: 401 }
+      );
+    }
+    const currentUserId = Number(decoded.userId);
+
     const id = parseInt(params.id)
 
     if (isNaN(id)) {
       return NextResponse.json(
         { error: 'Неверный ID поста' },
         { status: 400 }
+      )
+    }
+
+    // Проверяем, что пост принадлежит текущему пользователю
+    const existingPost = await prisma.post.findUnique({
+      where: { id },
+      select: { authorId: true }
+    })
+
+    if (!existingPost) {
+      return NextResponse.json(
+        { error: 'Пост не найден' },
+        { status: 404 }
+      )
+    }
+
+    if (existingPost.authorId !== currentUserId) {
+      return NextResponse.json(
+        { error: 'Недостаточно прав для удаления этого поста' },
+        { status: 403 }
       )
     }
 

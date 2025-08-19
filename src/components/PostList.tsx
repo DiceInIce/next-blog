@@ -11,6 +11,7 @@ import {
 } from '@chakra-ui/react'
 import { useColorMode } from '@/components/ui/color-mode'
 import { useAuth } from '@/hooks/useAuth'
+import EditPostModal from '@/components/EditPostModal'
 
 interface Post {
   id: number
@@ -29,7 +30,9 @@ export default function PostList() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const { colorMode } = useColorMode()
-  const { token } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+  const [editingPost, setEditingPost] = useState<{ id: number; title: string; content: string } | null>(null)
+  const [isEditOpen, setIsEditOpen] = useState(false)
 
   // Цвета для темной/светлой темы с значениями по умолчанию
   const bgColor = colorMode === 'dark' ? 'gray.800' : 'white'
@@ -42,13 +45,36 @@ export default function PostList() {
     try {
       const response = await fetch('/api/posts')
       if (response.ok) {
-        const data = await response.json()
-        setPosts(data)
+        // Проверяем Content-Type ответа
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const data = await response.json()
+            setPosts(data)
+          } catch (parseError) {
+            setError('Ошибка: Сервер вернул неверный формат данных')
+          }
+        } else {
+          setError('Ошибка: Сервер вернул неожиданный тип данных')
+        }
       } else {
-        setError('Ошибка при загрузке постов')
+        // Проверяем Content-Type ответа ошибки
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            setError(`Ошибка: ${errorData.error || 'Неизвестная ошибка'}`)
+          } catch (parseError) {
+            setError(`Ошибка сервера (${response.status}): Попробуйте позже`)
+          }
+        } else {
+          setError(`Ошибка сервера (${response.status}): Попробуйте позже`)
+        }
       }
     } catch (error) {
-      setError('Ошибка при загрузке постов')
+      setError('Ошибка сети: Проверьте подключение к интернету')
     } finally {
       setIsLoading(false)
     }
@@ -63,7 +89,7 @@ export default function PostList() {
       return
     }
 
-    if (!token) {
+    if (!isAuthenticated) {
       setError('Требуется авторизация для удаления поста')
       return
     }
@@ -71,20 +97,47 @@ export default function PostList() {
     try {
       const response = await fetch(`/api/posts/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
       })
 
       if (response.ok) {
         setPosts(posts.filter(post => post.id !== id))
       } else {
-        const data = await response.json()
-        setError(data.error || 'Ошибка при удалении поста')
+        // Проверяем Content-Type ответа ошибки
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const data = await response.json()
+            setError(data.error || 'Ошибка при удалении поста')
+          } catch (parseError) {
+            setError(`Ошибка сервера (${response.status}): Не удалось удалить пост`)
+          }
+        } else {
+          if (response.status === 401) {
+            setError('Ошибка: Требуется повторная авторизация')
+          } else {
+            setError(`Ошибка сервера (${response.status}): Не удалось удалить пост`)
+          }
+        }
       }
     } catch (error) {
-      setError('Ошибка при удалении поста')
+      setError('Ошибка сети: Не удалось удалить пост')
     }
+  }
+
+  const handleOpenEdit = (post: Post) => {
+    setEditingPost({ id: post.id, title: post.title, content: post.content })
+    setIsEditOpen(true)
+  }
+
+  const handleCloseEdit = () => {
+    setIsEditOpen(false)
+    setEditingPost(null)
+  }
+
+  const handlePostUpdated = (updated: { id: number; title: string; content: string }) => {
+    setPosts(prev => prev.map(p => p.id === updated.id ? { ...p, title: updated.title, content: updated.content } : p))
   }
 
   if (isLoading) {
@@ -150,14 +203,26 @@ export default function PostList() {
                 <Heading size="md" color={textColor} maxW="70%">
                   {post.title}
                 </Heading>
-                <Button
-                  onClick={() => handleDelete(post.id)}
-                  colorScheme="red"
-                  variant="ghost"
-                  size="sm"
-                >
-                  Удалить
-                </Button>
+                {isAuthenticated && user?.id === post.author.id && (
+                  <Stack direction="row">
+                    <Button
+                      onClick={() => handleOpenEdit(post)}
+                      colorScheme="blue"
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Редактировать
+                    </Button>
+                    <Button
+                      onClick={() => handleDelete(post.id)}
+                      colorScheme="red"
+                      variant="ghost"
+                      size="sm"
+                    >
+                      Удалить
+                    </Button>
+                  </Stack>
+                )}
               </Stack>
 
               <Box mb={3}>
@@ -185,6 +250,14 @@ export default function PostList() {
       >
         Обновить список
       </Button>
+
+      <EditPostModal
+        isOpen={isEditOpen}
+        post={editingPost}
+        onClose={handleCloseEdit}
+        onPostUpdated={handlePostUpdated}
+        onError={(msg) => setError(msg)}
+      />
     </Box>
   )
 }

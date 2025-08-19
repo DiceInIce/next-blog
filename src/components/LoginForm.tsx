@@ -46,6 +46,7 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
+        credentials: 'include'
       });
 
       const data = await response.json();
@@ -54,15 +55,14 @@ export default function LoginForm({ onSwitchToRegister }: LoginFormProps) {
         throw new Error(data.error || 'Ошибка авторизации');
       }
 
-      // Используем хук useAuth для входа
-      login(data.user, data.token);
+      // Сервер установит httpOnly cookie, обновляем состояние локально
+      login(data.user);
 
-      // Показываем уведомление об успешном входе
-      alert('Добро пожаловать в систему!');
+      // Дополнительно дергаем /api/auth/me, чтобы убедиться что cookie применена
+      try { await fetch('/api/auth/me', { credentials: 'include' }); } catch {}
 
-      // Перенаправляем на главную страницу
-      router.push('/');
-      router.refresh();
+      // Жесткий редирект гарантирует наличие cookie в запросе к серверу
+      window.location.href = '/';
 
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Произошла ошибка');

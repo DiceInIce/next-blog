@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       username: user.username
     });
 
-    // Возвращаем информацию о пользователе и токен
+    // Готовим данные пользователя
     const userData = {
       id: user.id,
       username: user.username,
@@ -51,11 +51,21 @@ export async function POST(request: NextRequest) {
       name: user.name
     };
 
-    return NextResponse.json({
+    // Формируем ответ и устанавливаем httpOnly cookie
+    const response = NextResponse.json({
       message: 'Успешная авторизация',
-      user: userData,
-      token
+      user: userData
     });
+
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7 // 7 дней
+    });
+
+    return response;
 
   } catch (error) {
     return NextResponse.json(

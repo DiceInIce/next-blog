@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Box,
   Button,
@@ -11,42 +11,37 @@ import {
   CloseButton,
 } from '@chakra-ui/react'
 import { useColorMode } from '@/components/ui/color-mode'
-import { useAuth } from '@/hooks/useAuth'
 
-interface CreatePostModalProps {
+interface PostData {
+  id: number
+  title: string
+  content: string
+}
+
+interface EditPostModalProps {
   isOpen: boolean
+  post: PostData | null
   onClose: () => void
-  onPostCreated?: () => void
+  onPostUpdated?: (updated: { id: number; title: string; content: string }) => void
   onError?: (message: string) => void
 }
 
-export default function CreatePostModal({ isOpen, onClose, onPostCreated, onError }: CreatePostModalProps) {
+export default function EditPostModal({ isOpen, post, onClose, onPostUpdated, onError }: EditPostModalProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const { colorMode } = useColorMode()
-  const { isAuthenticated } = useAuth()
 
-  // Обработка клавиши Escape
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose()
-      }
+    if (isOpen && post) {
+      setTitle(post.title)
+      setContent(post.content)
+      setMessage('')
     }
+  }, [isOpen, post])
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape)
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [isOpen])
-
-  // Цвета для темной/светлой темы
   const bgColor = colorMode === 'dark' ? 'gray.800' : 'white'
   const textColor = colorMode === 'dark' ? 'white' : 'gray.800'
   const labelColor = colorMode === 'dark' ? 'gray.300' : 'gray.700'
@@ -56,105 +51,58 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!post) return
     setIsLoading(true)
     setMessage('')
 
-
-
-    if (!isAuthenticated) {
-      setMessage('Ошибка: Требуется авторизация')
-      setMessageType('error')
-      setIsLoading(false)
-      return
-    }
-
     try {
-      const headers = {
-        'Content-Type': 'application/json'
-      };
-
-
-
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          title,
-          content
-        }),
-        credentials: 'include'
+      const response = await fetch(`/api/posts/${post.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ title, content })
       })
 
-
-
       if (!response.ok) {
-        // Проверяем Content-Type ответа
-        const contentType = response.headers.get('content-type');
-        
+        const contentType = response.headers.get('content-type')
         if (contentType && contentType.includes('application/json')) {
-          // Если это JSON, парсим как обычно
           try {
-            const data = await response.json();
+            const data = await response.json()
             setMessage(`Ошибка: ${data.error || 'Неизвестная ошибка'}`)
-            setMessageType('error')
-            onError?.(`Ошибка: ${data.error || 'Неизвестная ошибка'}`)
-          } catch (parseError) {
-            setMessage('Ошибка: Сервер вернул неверный формат ответа')
-            setMessageType('error')
+          } catch {
+            setMessage(`Ошибка сервера (${response.status}): Попробуйте позже`)
           }
         } else {
-          // Если это не JSON (например, HTML страница ошибки), показываем общую ошибку
-          const responseText = await response.text();
-          
-          if (response.status === 401) {
-            setMessage('Ошибка: Требуется повторная авторизация')
-            setMessageType('error')
-            onError?.('Ошибка: Требуется повторная авторизация')
-          } else {
-            setMessage(`Ошибка сервера (${response.status}): Попробуйте позже`)
-            setMessageType('error')
-            onError?.(`Ошибка сервера (${response.status}): Попробуйте позже`)
-          }
+          setMessage(`Ошибка сервера (${response.status}): Попробуйте позже`)
         }
-      } else {
-        try {
-          const data = await response.json()
-          
-          // Очищаем форму
-          setTitle('')
-          setContent('')
-          
-          // Сразу закрываем модальное окно
-          onClose()
-          
-          // Вызываем callback для обновления списка постов
-          onPostCreated?.()
-        } catch (parseError) {
-          // Даже если не удалось распарсить ответ, считаем операцию успешной
-          setTitle('')
-          setContent('')
-          onClose()
-          onPostCreated?.()
-        }
+        setMessageType('error')
+        onError?.('Не удалось обновить пост')
+        return
       }
+
+      try {
+        const data = await response.json()
+        onPostUpdated?.({ id: post.id, title, content })
+      } catch {
+        onPostUpdated?.({ id: post.id, title, content })
+      }
+
+      handleClose()
     } catch (error) {
-      setMessage('Ошибка при создании поста')
+      setMessage('Ошибка при обновлении поста')
       setMessageType('error')
-      onError?.('Ошибка при создании поста')
+      onError?.('Ошибка при обновлении поста')
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleClose = () => {
-    // Очищаем форму при закрытии
-    setTitle('')
-    setContent('')
     setMessage('')
     onClose()
   }
 
-  if (!isOpen) return null
+  if (!isOpen || !post) return null
 
   return (
     <Box
@@ -188,7 +136,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
         opacity={isOpen ? 1 : 0}
         transition="transform 0.2s ease-in-out, opacity 0.2s ease-in-out"
       >
-        {/* Заголовок */}
         <Box
           p={6}
           borderBottom="1px solid"
@@ -196,7 +143,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
           position="relative"
         >
           <Text fontSize="xl" fontWeight="bold" color={textColor}>
-            Создать новый пост
+            Редактировать пост
           </Text>
           <CloseButton
             position="absolute"
@@ -206,8 +153,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
             color={textColor}
           />
         </Box>
-        
-        {/* Содержимое */}
+
         <Box p={6}>
           <form onSubmit={handleSubmit}>
             <Stack gap={4}>
@@ -270,7 +216,6 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
           </form>
         </Box>
 
-        {/* Футер с кнопками */}
         <Box
           p={6}
           borderTop="1px solid"
@@ -289,10 +234,12 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
             onClick={handleSubmit}
             disabled={isLoading}
           >
-            {isLoading ? 'Создание...' : 'Создать пост'}
+            {isLoading ? 'Сохранение...' : 'Сохранить'}
           </Button>
         </Box>
       </Box>
     </Box>
   )
 }
+
+

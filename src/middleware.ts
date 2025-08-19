@@ -1,87 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Простая функция проверки JWT токена для middleware
-function verifyTokenInMiddleware(token: string): any {
+// Edge Runtime: нельзя использовать jsonwebtoken. Делаем лёгкую проверку структуры/exp.
+function base64UrlDecode(input: string): string {
+  // JWT использует base64url ("-" и "_" вместо "+" и "/" и без паддинга)
+  let output = input.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = output.length % 4;
+  if (pad === 2) output += '==';
+  else if (pad === 3) output += '=';
+  else if (pad !== 0) throw new Error('Invalid base64url string');
+  return atob(output);
+}
+
+function decodeJwtPayload(token: string): any | null {
   try {
-    // Простая проверка формата JWT (3 части, разделенные точками)
     const parts = token.split('.');
-    if (parts.length !== 3) {
-      return null;
-    }
-    
-    // Декодируем payload (вторая часть)
-    const payload = JSON.parse(atob(parts[1]));
-    
-    // Проверяем срок действия
-    if (payload.exp && payload.exp < Date.now() / 1000) {
-      return null;
-    }
-    
+    if (parts.length !== 3) return null;
+    const payloadJson = base64UrlDecode(parts[1]);
+    const payload = JSON.parse(payloadJson);
+    if (payload && payload.exp && payload.exp < Date.now() / 1000) return null;
     return payload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
 export function middleware(request: NextRequest) {
-  // Проверяем только API маршруты для постов
-  if (request.nextUrl.pathname.startsWith('/api/posts')) {
-    // Для GET запросов (просмотр постов) авторизация не требуется
-    if (request.method === 'GET') {
-      return NextResponse.next();
-    }
-    
-    // Для POST и DELETE запросов (создание и удаление постов) проверяем авторизацию
-    if (request.method === 'POST' || request.method === 'DELETE') {
-      const authHeader = request.headers.get('authorization');
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
-      if (!token) {
-        return NextResponse.json(
-          { error: 'Требуется авторизация' },
-          { status: 401 }
-        );
-      }
-
-      const decoded = verifyTokenInMiddleware(token);
-
-      if (!decoded) {
-        return NextResponse.json(
-          { error: 'Недействительный токен' },
-          { status: 401 }
-        );
-      }
-
-      // Проверяем структуру токена
-      if (!decoded.userId || !decoded.username) {
-        return NextResponse.json(
-          { error: 'Недействительная структура токена' },
-          { status: 401 }
-        );
-      }
-
-      // Добавляем информацию о пользователе в заголовки для использования в API
-      const requestHeaders = new Headers(request.headers);
-      requestHeaders.set('x-user-id', decoded.userId.toString());
-      requestHeaders.set('x-username', decoded.username);
-
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
-    }
-    
-    // Для других методов возвращаем ошибку
-    return NextResponse.json(
-      { error: 'Метод не поддерживается' },
-      { status: 405 }
-    );
+  const { pathname } = request.nextUrl;
+  
+  // Разрешаем доступ к странице авторизации и статическим файлам
+  if (pathname === '/auth' || 
+      pathname.startsWith('/_next/') || 
+      pathname === '/favicon.ico' ||
+      pathname.startsWith('/public/')) {
+    return NextResponse.next();
   }
-
+  
+  // Проверяем авторизацию для страниц (не API роутов)
+  // Для страниц используем только cookies, так как заголовки Authorization не передаются при навигации
+  const token = request.cookies.get('token')?.value;
+  
+  if (!token) {
+    // Перенаправляем на страницу авторизации
+    return NextResponse.redirect(new URL('/auth', request.url));
+  }
+  
+  const decoded = decodeJwtPayload(token);
+  
+  if (!decoded) {
+    // Если токен недействителен, перенаправляем на авторизацию
+    return NextResponse.redirect(new URL('/auth', request.url));
+  }
+  
+  // Проверяем структуру токена
+  if (!decoded.userId || !decoded.username) {
+    return NextResponse.redirect(new URL('/auth', request.url));
+  }
+  
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: '/api/posts/:path*',
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes handled separately)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
+  ],
 };
