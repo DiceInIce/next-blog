@@ -23,6 +23,7 @@ interface CreatePostModalProps {
 export default function CreatePostModal({ isOpen, onClose, onPostCreated, onError }: CreatePostModalProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [tags, setTags] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
@@ -80,7 +81,11 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
         headers,
         body: JSON.stringify({
           title,
-          content
+          content,
+          tags: tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
         }),
         credentials: 'include'
       })
@@ -123,6 +128,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
           // Очищаем форму
           setTitle('')
           setContent('')
+          setTags('')
           
           // Сразу закрываем модальное окно
           onClose()
@@ -133,6 +139,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
           // Даже если не удалось распарсить ответ, считаем операцию успешной
           setTitle('')
           setContent('')
+          setTags('')
           onClose()
           onPostCreated?.()
         }
@@ -150,6 +157,7 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
     // Очищаем форму при закрытии
     setTitle('')
     setContent('')
+    setTags('')
     setMessage('')
     onClose()
   }
@@ -258,6 +266,26 @@ export default function CreatePostModal({ isOpen, onClose, onPostCreated, onErro
                   placeholder="Введите содержание поста"
                   size="md"
                   required
+                  bg={inputBgColor}
+                  borderColor={inputBorderColor}
+                  color={inputTextColor}
+                  _placeholder={{ color: colorMode === 'dark' ? 'gray.400' : 'gray.500' }}
+                  _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px var(--chakra-colors-blue-500)' }}
+                  disabled={isLoading}
+                />
+              </Box>
+
+              <Box w="full">
+                <Text as="label" display="block" fontSize="sm" fontWeight="medium" mb={1} color={labelColor}>
+                  Теги (через запятую)
+                </Text>
+                <Input
+                  type="text"
+                  id="tags"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="например: nextjs, prisma, ui"
+                  size="md"
                   bg={inputBgColor}
                   borderColor={inputBorderColor}
                   color={inputTextColor}

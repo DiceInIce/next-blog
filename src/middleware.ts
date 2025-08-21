@@ -28,10 +28,12 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Разрешаем доступ к странице авторизации и статическим файлам
+  // Разрешаем любые запросы к статическим ресурсам (файлы с расширением)
+  const isStaticAsset = /\.[A-Za-z0-9]+$/.test(pathname);
   if (pathname === '/auth' || 
       pathname.startsWith('/_next/') || 
       pathname === '/favicon.ico' ||
-      pathname.startsWith('/public/')) {
+      isStaticAsset) {
     return NextResponse.next();
   }
   

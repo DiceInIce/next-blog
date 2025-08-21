@@ -16,13 +16,69 @@ model User {
   name      String?
   createdAt DateTime @default(now())
   posts     Post[]
+  comments  Comment[]
+  likes     PostLike[]
 }
 
 model Post { 
-  id Int @id @default(autoincrement())
-  title String
-  content String
+  id        Int         @id @default(autoincrement())
+  title     String
+  slug      String      @unique
+  content   String
+  status    PostStatus  @default(PUBLISHED)
+  createdAt DateTime    @default(now())
+
+  authorId  Int
+  author    User        @relation(fields: [authorId], references: [id])
+
+  // Relations
+  tags      PostTag[]
+  comments  Comment[]
+  likes     PostLike[]
+}
+
+model Tag {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+
+  posts     PostTag[]
+}
+
+model PostTag {
+  postId Int
+  tagId  Int
+
+  post   Post @relation(fields: [postId], references: [id])
+  tag    Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([postId, tagId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
   createdAt DateTime @default(now())
-  authorId Int
-  author User @relation(fields: [authorId], references: [id])
+
+  postId    Int
+  authorId  Int
+
+  post      Post @relation(fields: [postId], references: [id])
+  author    User @relation(fields: [authorId], references: [id])
+}
+
+model PostLike {
+  userId    Int
+  postId    Int
+  createdAt DateTime @default(now())
+
+  user      User @relation(fields: [userId], references: [id])
+  post      Post @relation(fields: [postId], references: [id])
+
+  @@id([userId, postId])
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
 }

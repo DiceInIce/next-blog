@@ -16,6 +16,7 @@ interface PostData {
   id: number
   title: string
   content: string
+  tags?: string[]
 }
 
 interface EditPostModalProps {
@@ -33,11 +34,13 @@ export default function EditPostModal({ isOpen, post, onClose, onPostUpdated, on
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error'>('success')
   const { colorMode } = useColorMode()
+  const [tags, setTags] = useState('')
 
   useEffect(() => {
     if (isOpen && post) {
       setTitle(post.title)
       setContent(post.content)
+      setTags((post.tags || []).join(', '))
       setMessage('')
     }
   }, [isOpen, post])
@@ -60,7 +63,7 @@ export default function EditPostModal({ isOpen, post, onClose, onPostUpdated, on
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ title, content })
+        body: JSON.stringify({ title, content, tags: tags.split(',').map((t) => t.trim()).filter(Boolean) })
       })
 
       if (!response.ok) {
@@ -204,6 +207,26 @@ export default function EditPostModal({ isOpen, post, onClose, onPostUpdated, on
                   placeholder="Введите содержание поста"
                   size="md"
                   required
+                  bg={inputBgColor}
+                  borderColor={inputBorderColor}
+                  color={inputTextColor}
+                  _placeholder={{ color: colorMode === 'dark' ? 'gray.400' : 'gray.500' }}
+                  _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px var(--chakra-colors-blue-500)' }}
+                  disabled={isLoading}
+                />
+              </Box>
+
+              <Box w="full">
+                <Text as="label" display="block" fontSize="sm" fontWeight="medium" mb={1} color={labelColor}>
+                  Теги (через запятую)
+                </Text>
+                <Input
+                  type="text"
+                  id="tags"
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  placeholder="например: nextjs, prisma, ui"
+                  size="md"
                   bg={inputBgColor}
                   borderColor={inputBorderColor}
                   color={inputTextColor}

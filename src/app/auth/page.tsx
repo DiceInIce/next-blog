@@ -27,9 +27,15 @@ export default function AuthPage() {
       <Box maxW="md" w="full">
         <Stack gap={10}>
           <Box textAlign="center">
-            <Heading size="xl" color="gray.900" _dark={{ color: 'white' }}>
-              Блог на Next.js
-            </Heading>
+            <Stack direction="row" align="center" justify="center" mb={6}>
+              <picture>
+                <source srcSet="/logo-dark.svg" media="(prefers-color-scheme: dark)" />
+                <img src="/logo-light.svg" alt="Черновик" width={48} height={48} style={{ display: 'block', marginInline: 'auto' }} />
+              </picture>
+              <Heading size="4xl" color="gray.900" _dark={{ color: 'white' }}>
+                Черновик
+              </Heading>
+            </Stack>
             <Text mt={2} fontSize="sm" color="gray.600" _dark={{ color: 'gray.400' }}>
               {isLogin ? 'Войдите в свой аккаунт' : 'Создайте новый аккаунт'}
             </Text>

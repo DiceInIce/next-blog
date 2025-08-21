@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Box, Container, Heading, Stack, Button, Link, Text } from '@chakra-ui/react'
+import { Box, Container, Heading, Stack, Button, Link, Text, HStack, Image } from '@chakra-ui/react'
 import { LuInfo, LuPlus, LuLogOut, LuUser } from 'react-icons/lu'
 import CreatePostModal from '@/components/CreatePostModal'
 import PostList from '@/components/PostList'
@@ -84,29 +84,25 @@ export default function Home() {
           <Stack gap={8}>
             <Box w="full">
               <Stack direction="row" justify="space-between" align="center" mb={6}>
-                <Heading size="lg" color={textColor}>
-                  Блог на Next.js
-                </Heading>
+                <HStack gap={3} align="center">
+                  <Image src={colorMode === 'dark' ? '/logo-dark.svg' : '/logo-light.svg'} alt="Черновик" boxSize="28px" />
+                  <Heading size="lg" color={textColor}>
+                    Черновик
+                  </Heading>
+                </HStack>
 
                 <Stack direction="row">
                   <Text color={textColor} fontSize="sm" fontWeight="bold" mr={2} mt={2}>
                     {user?.name || user?.username}
                   </Text>
                   <Button
-                    colorScheme="blue"
-                    size="md"
-                    onClick={openCreateModal}
-                    _hover={{ transform: 'scale(1.05)' }}
-                    transition="all 0.2s"
-                  >
-                    <LuPlus style={{ marginRight: '8px' }} />
-                    Создать
-                  </Button>
-                  <Button
                     colorScheme="red"
                     variant="outline"
                     size="md"
                     onClick={handleLogout}
+                    transition="transform 0.15s ease, box-shadow 0.15s ease"
+                    _hover={{ transform: 'translateY(-1px)', boxShadow: 'md' }}
+                    _active={{ transform: 'translateY(0)', boxShadow: 'sm' }}
                   >
                     <LuLogOut style={{ marginRight: '8px' }} />
                     Выйти
