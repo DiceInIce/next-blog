@@ -165,8 +165,13 @@ export async function GET(request: NextRequest) {
     const commonInclude = {
       author: { select: { id: true, name: true, email: true, username: true } },
       tags: { include: { tag: true } },
-      _count: { select: { comments: true, likes: true } }
-    }
+      _count: { select: { comments: true, likes: true } },
+      comments: {
+        include: { author: { select: { id: true, name: true, username: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 2
+      }
+    } as const
 
     // Если нет фильтров/пагинации — оставим прежнее поведение для обратной совместимости
     const hasAdvanced = q || tag || cursorParam || limitParam || status !== 'PUBLISHED'

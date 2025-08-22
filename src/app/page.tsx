@@ -92,9 +92,27 @@ export default function Home() {
                 </HStack>
 
                 <Stack direction="row">
-                  <Text color={textColor} fontSize="sm" fontWeight="bold" mr={2} mt={2}>
-                    {user?.name || user?.username}
-                  </Text>
+                  {user?.username ? (
+                    <Link href={`/users/${user.username}`} _hover={{ textDecoration: 'none' }} role="group" mr={2}>
+                      <Text
+                        color={textColor}
+                        fontSize="sm"
+                        fontWeight="bold"
+                        transition="color 0.15s ease, text-decoration-color 0.15s ease"
+                        _groupHover={{
+                          color: colorMode === 'dark' ? 'blue.300' : 'blue.600',
+                          textDecoration: 'underline',
+                          textDecorationColor: colorMode === 'dark' ? 'blue.300' : 'blue.600'
+                        }}
+                      >
+                        {user?.name || user.username}
+                      </Text>
+                    </Link>
+                  ) : (
+                    <Text color={textColor} fontSize="sm" fontWeight="bold" mr={2} mt={2}>
+                      {user?.name || user?.username}
+                    </Text>
+                  )}
                   <Button
                     colorScheme="red"
                     variant="outline"

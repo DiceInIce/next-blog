@@ -13,6 +13,7 @@ import {
   HStack,
   Badge,
 } from '@chakra-ui/react'
+import Link from 'next/link'
 import { useColorMode } from '@/components/ui/color-mode'
 import { useAuth } from '@/hooks/useAuth'
 import EditPostModal from '@/components/EditPostModal'
@@ -32,6 +33,7 @@ interface Post {
   }
   tags?: { tag: { id?: number; name: string } }[]
   _count?: { comments: number; likes: number }
+  comments?: { content: string; createdAt: string; author: { id: number; name: string | null; username?: string } }[]
 }
 
 export default function PostList() {
@@ -290,9 +292,11 @@ export default function PostList() {
               transition="all 0.2s"
             >
               <Stack direction="row" justify="space-between" align="flex-start" mb={2}>
-                <Heading size="md" color={textColor} maxW="70%">
-                  {post.title}
-                </Heading>
+                <Link href={`/posts/${post.id}`} style={{ textDecoration: 'none' }}>
+                  <Heading size="md" color={textColor} maxW="100%" overflow="hidden" textOverflow="ellipsis" whiteSpace="nowrap" _hover={{ color: colorMode === 'dark' ? 'blue.300' : 'blue.600' }}>
+                    {post.title}
+                  </Heading>
+                </Link>
                 {isAuthenticated && user?.id === post.author.id && (
                   <Stack direction="row">
                     <Button
@@ -336,9 +340,26 @@ export default function PostList() {
                 </HStack>
               )}
 
+              
+
               <Stack direction="row" justify="space-between" fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
-                <Text>Автор: {post.author.name || post.author.email}</Text>
+                <Text>
+                  Автор: {post.author.username ? (
+                    <Link href={`/users/${post.author.username}`}>{post.author.name || `@${post.author.username}`}</Link>
+                  ) : (
+                    post.author.name || post.author.email
+                  )}
+                </Text>
                 <HStack gap={3}>
+                  <Link href={`/posts/${post.id}#comments`} style={{ textDecoration: 'none' }}>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      colorScheme="blue"
+                    >
+                      💬 {post._count?.comments ?? 0}
+                    </Button>
+                  </Link>
                   <Button
                     size="xs"
                     variant={likes[post.id]?.likedByMe ? 'solid' : 'outline'}
@@ -347,9 +368,39 @@ export default function PostList() {
                   >
                     ❤ {likes[post.id]?.count ?? (post._count?.likes ?? 0)}
                   </Button>
-                  <Text>{new Date(post.createdAt).toLocaleDateString('ru-RU')}</Text>
+                  <Text>{new Date(post.createdAt).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' })}</Text>
                 </HStack>
               </Stack>
+
+              {!!post.comments?.length && (
+                <Box mt={3}>
+                  {(post._count?.comments ?? 0) > (post.comments?.length ?? 0) && (
+                    <Link href={`/posts/${post.id}#comments`} style={{ textDecoration: 'none' }}>
+                      <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} _hover={{ color: colorMode === 'dark' ? 'blue.300' : 'blue.600' }}>
+                        Посмотреть все {post._count?.comments} комментариев
+                      </Text>
+                    </Link>
+                  )}
+                  <Stack gap={2} mt={2}>
+                    {post.comments.map((c, i) => (
+                      <Link key={`${post.id}-cprev-${i}`} href={`/posts/${post.id}#comments`} style={{ textDecoration: 'none' }}>
+                        <HStack gap={2} align="start" _hover={{ bg: colorMode === 'dark' ? 'gray.600' : 'gray.100' }} p={2} rounded="md" transition="background 0.15s ease">
+                          <Box w="18px" h="18px" rounded="full" bg={colorMode === 'dark' ? 'gray.500' : 'gray.300'} flexShrink={0} />
+                          <Text
+                            fontSize="sm"
+                            color={textColor}
+                            whiteSpace="nowrap"
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                          >
+                            <Text as="span" fontWeight="bold">{c.author?.name || c.author?.username || 'Аноним'}</Text> {c.content}
+                          </Text>
+                        </HStack>
+                      </Link>
+                    ))}
+                  </Stack>
+                </Box>
+              )}
             </Box>
           ))}
         </Stack>
