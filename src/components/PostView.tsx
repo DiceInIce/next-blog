@@ -3,6 +3,7 @@
 import { Box, Container, Heading, Text, Stack, Badge, HStack } from '@chakra-ui/react'
 import Link from 'next/link'
 import CommentsSection from '@/components/CommentsSection'
+import BackButton from '@/components/BackButton'
 
 export interface PostViewProps {
   post: {
@@ -16,11 +17,12 @@ export interface PostViewProps {
 }
 
 export default function PostView({ post }: PostViewProps) {
+
   return (
     <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.900' }} py={12}>
       <Container maxW="5xl" px={4}>
         <Stack gap={8}>
-          <Link href="/">← Назад</Link>
+          <BackButton />
 
           <Box bg="white" _dark={{ bg: 'gray.800' }} shadow="md" rounded="xl" p={8}>
             <Stack gap={4}>

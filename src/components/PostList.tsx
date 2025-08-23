@@ -138,6 +138,26 @@ export default function PostList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, selectedTag])
 
+  // Переинициализируем лайки, когда авторизация становится доступной
+  useEffect(() => {
+    if (!isAuthenticated) return
+    if (!posts.length) return
+    const initLikes = async () => {
+      const ids = posts.map(p => p.id)
+      await Promise.all(ids.map(async (id) => {
+        try {
+          const r = await fetch(`/api/posts/${id}/likes`, { credentials: 'include' })
+          if (r.ok) {
+            const ld = await r.json()
+            setLikes(prev => ({ ...prev, [id]: { count: ld.count ?? (prev[id]?.count ?? 0), likedByMe: !!ld.likedByMe } }))
+          }
+        } catch {}
+      }))
+    }
+    initLikes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, posts])
+
   const handleDelete = async (id: number) => {
     if (!confirm('Вы уверены, что хотите удалить этот пост?')) {
       return

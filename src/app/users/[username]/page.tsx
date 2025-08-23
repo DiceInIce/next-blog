@@ -1,9 +1,10 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
-import { Box, Container, Heading, Text, Stack, Badge, SimpleGrid, Link as ChakraLink } from '@chakra-ui/react'
+import { Box, Container, Heading, Text, Stack, Badge, SimpleGrid } from '@chakra-ui/react'
 import { ColorModeButton } from '@/components/ui/color-mode'
 import Link from 'next/link'
 import UserPostsToggle from '@/components/UserPostsToggle'
+import BackButton from '@/components/BackButton'
 
 interface PageProps {
   params: Promise<{ username: string }>
@@ -33,9 +34,7 @@ export default async function UserProfilePage({ params }: PageProps) {
     <Box minH="100vh" bg="gray.50" _dark={{ bg: 'gray.900' }} py={12}>
       <Container maxW="5xl" px={4}>
         <Stack direction="row" justify="space-between" align="center" mb={8}>
-          <Link href="/">
-            <ChakraLink color="blue.500">← Назад</ChakraLink>
-          </Link>
+          <BackButton />
           <ColorModeButton size="md" />
         </Stack>
 
