@@ -9,7 +9,7 @@
 
 ### 1) Клонирование и установка
 ```bash
-git clone <URL_ВАШЕГО_РЕПО>
+git clone https://github.com/DiceInIce/next-blog
 cd nextjs-blog
 npm install
 ```
